@@ -1,0 +1,22 @@
+{
+  "name": "hono-ark",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify"
+  },
+  "dependencies": {
+    "@fiberplane/hono": "^0.5.2",
+    "@hono/arktype-validator": "^2.0.0",
+    "@neondatabase/serverless": "^1.0.0",
+    "@types/node": "^22.13.14",
+    "arktype": "^2.1.15",
+    "drizzle-arktype": "^0.1.2",
+    "drizzle-orm": "^0.41.0",
+    "hono": "^4.7.5",
+    "hono-openapi": "^0.4.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "wrangler": "^4.4.0"
+  }
+}
