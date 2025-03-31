@@ -2,8 +2,10 @@ import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import photosRoute from './routes/photos'
 import type { Context } from 'hono'
-
 import { createFiberplane } from "@fiberplane/hono";
+import { photoSchema } from './types/photo';
+import { photoType } from './db/schema';
+import { arkTypeToOpenAPI, createSchemaRef, createAPIResponseSchema } from './utils/openapi';
 
 const app = new Hono()
 
@@ -20,6 +22,19 @@ app.route('/api/photos', photosRoute)
 
 // Serve OpenAPI documentation
 app.get('/openapi.json', (c: Context) => {
+  // Convert ArkType schemas to OpenAPI format
+  const photoInputSchema = arkTypeToOpenAPI(photoSchema);
+  const photoFullSchema = {
+    type: "object" as const,
+    required: ["id", "title", "url", "createdAt", "updatedAt"],
+    properties: {
+      ...photoInputSchema.properties,
+      id: { type: "string", format: "uuid" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    }
+  };
+
   const spec = {
     openapi: '3.0.3',
     info: {
@@ -44,16 +59,10 @@ app.get('/openapi.json', (c: Context) => {
               description: "List of photos retrieved successfully",
               content: {
                 "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      success: { type: "boolean", example: true },
-                      data: {
-                        type: "array",
-                        items: { $ref: "#/components/schemas/Photo" }
-                      }
-                    }
-                  }
+                  schema: createAPIResponseSchema({
+                    type: "array",
+                    items: createSchemaRef("Photo")
+                  })
                 }
               }
             },
@@ -81,7 +90,7 @@ app.get('/openapi.json', (c: Context) => {
             required: true,
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/PhotoInput" }
+                schema: createSchemaRef("PhotoInput")
               }
             }
           },
@@ -90,13 +99,7 @@ app.get('/openapi.json', (c: Context) => {
               description: "Photo created successfully",
               content: {
                 "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      success: { type: "boolean", example: true },
-                      data: { $ref: "#/components/schemas/Photo" }
-                    }
-                  }
+                  schema: createAPIResponseSchema(createSchemaRef("Photo"))
                 }
               }
             },
@@ -153,13 +156,7 @@ app.get('/openapi.json', (c: Context) => {
               description: "Photo retrieved successfully",
               content: {
                 "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      success: { type: "boolean", example: true },
-                      data: { $ref: "#/components/schemas/Photo" }
-                    }
-                  }
+                  schema: createAPIResponseSchema(createSchemaRef("Photo"))
                 }
               }
             },
@@ -201,7 +198,7 @@ app.get('/openapi.json', (c: Context) => {
             required: true,
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/PhotoInput" }
+                schema: createSchemaRef("PhotoInput")
               }
             }
           },
@@ -210,13 +207,7 @@ app.get('/openapi.json', (c: Context) => {
               description: "Photo updated successfully",
               content: {
                 "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      success: { type: "boolean", example: true },
-                      data: { $ref: "#/components/schemas/Photo" }
-                    }
-                  }
+                  schema: createAPIResponseSchema(createSchemaRef("Photo"))
                 }
               }
             },
@@ -317,24 +308,13 @@ app.get('/openapi.json', (c: Context) => {
     },
     components: {
       schemas: {
-        Photo: {
-          type: "object",
-          required: ["id", "title", "url", "createdAt", "updatedAt"],
-          properties: {
-            id: { type: "string", format: "uuid" },
-            title: { type: "string" },
-            url: { type: "string", format: "uri" },
-            description: { type: "string", nullable: true },
-            createdAt: { type: "string", format: "date-time" },
-            updatedAt: { type: "string", format: "date-time" }
-          }
-        },
+        Photo: photoFullSchema,
         PhotoInput: {
           type: "object",
           required: ["title", "url"],
           properties: {
             title: { type: "string" },
-            url: { type: "string", format: "uri" },
+            url: { type: "string" },
             description: { type: "string", nullable: true }
           }
         },
@@ -345,15 +325,15 @@ app.get('/openapi.json', (c: Context) => {
             success: { type: "boolean" },
             data: { 
               oneOf: [
-                { $ref: "#/components/schemas/Photo" },
+                createSchemaRef("Photo"),
                 { 
                   type: "array",
-                  items: { $ref: "#/components/schemas/Photo" }
+                  items: createSchemaRef("Photo")
                 }
               ]
             },
-            error: { type: "string" },
-            message: { type: "string" }
+            error: { type: "string", nullable: true },
+            message: { type: "string", nullable: true }
           }
         }
       }
